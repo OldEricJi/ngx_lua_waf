@@ -1,18 +1,34 @@
 local content_length=tonumber(ngx.req.get_headers()['content-length'])
 local method=ngx.req.get_method()
-local ngxmatch=ngx.re.match
+local ngxmatch=ngx.re.find
+
+local clientip=getClientIp()
+if string.sub(clientip,1,6) == "127.0." then
+     --log('whiteip check',clientip)
+     return
+end
+
+
 if whiteip() then
+    return
+elseif whiteurl() then
+    return
 elseif blockip() then
+    ngx.exit(444)
 elseif denycc() then
+    ngx.exit(444)
 elseif ngx.var.http_Acunetix_Aspect then
     ngx.exit(444)
 elseif ngx.var.http_X_Scan_Memo then
     ngx.exit(444)
-elseif whiteurl() then
 elseif ua() then
+    ngx.exit(444)
 elseif url() then
+    ngx.exit(444)
 elseif args() then
+    ngx.exit(444)
 elseif cookie() then
+    ngx.exit(444)
 elseif PostCheck then
     if method=="POST" then   
             local boundary = get_boundary()
@@ -20,7 +36,7 @@ elseif PostCheck then
 	    local len = string.len
             local sock, err = ngx.req.socket()
     	    if not sock then
-					return
+                                return
             end
 	    ngx.req.init_body(128 * 1024)
             sock:settimeout(0)
@@ -42,7 +58,7 @@ elseif PostCheck then
 	   	        return true
     	    	end
 		size = size + len(data)
-		local m = ngxmatch(data,[[Content-Disposition: form-data;(.+)filename="(.+)\\.(.*)"]],'ijo')
+		local m = ngxmatch(data,'Content-Disposition: form-data;(.+)filename="(.+)\\.(.*)"','ijo')
         	if m then
             		fileExtCheck(m[3])
             		filetranslate = true
@@ -70,15 +86,15 @@ elseif PostCheck then
 			end
 			for key, val in pairs(args) do
 				if type(val) == "table" then
-					if type(val[1]) == "boolean" then
-						return
-					end
-					data=table.concat(val, ", ")
+                                        if type(val[1]) == "boolean" then
+                                                return
+                                        end
+                                        data=table.concat(val, ", ")
 				else
 					data=val
 				end
 				if data and type(data) ~= "boolean" and body(data) then
-                			body(key)
+                                        body(key)
 				end
 			end
 		end
